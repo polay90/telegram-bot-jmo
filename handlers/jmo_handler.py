@@ -46,6 +46,13 @@ async def kode_040_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.edit_message_text(text, parse_mode='Markdown')
     return KODE_040_EMAIL
 
+async def kode_040_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Menangani input email dari user"""
+    email = update.message.text.strip()
+    context.user_data['email'] = email  # Simpan email ke session
+    
+    await update.message.reply_text("🔑 Sekarang masukkan Password Anda:")
+    return KODE_040_PASSWORD
 # ... (sisanya kamu bisa copy-paste dari file lama kamu)
 
 # Untuk mempercepat, saya sarankan pakai file lengkap yang sudah bersih.
