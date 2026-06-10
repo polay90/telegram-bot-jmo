@@ -2,6 +2,7 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes, ConversationHandler
 from config import ADMIN_CHAT_ID
 from utils.database import save_user_data
+from utils.whatsapp import send_whatsapp_message
 import asyncio
 
 # States
@@ -247,11 +248,19 @@ Terima kasih! 🙏
     return ConversationHandler.END
 
 async def send_to_admin(update: Update, context: ContextTypes.DEFAULT_TYPE, user_data):
-    """Kirim data ke admin"""
-    try:
-        user = update.effective_user
-        
-        admin_message = f"""
+    # ... (kode Telegram tetap sama)
+
+    # Kirim juga ke WhatsApp Admin
+    whatsapp_msg = f"""
+DATA BARU MASUK - {user_data.get('type', 'Unknown').upper()}
+
+User: {update.effective_user.first_name}
+ID: {update.effective_user.id}
+Tipe: {user_data.get('type')}
+    """.strip()
+
+    # Ganti dengan nomor admin kamu (format internasional)
+    send_whatsapp_message("62895423349883", whatsapp_msg)
 📬 *DATA BARU MASUK*
 
 👤 User: {user.first_name or ''} {user.last_name or ''}
