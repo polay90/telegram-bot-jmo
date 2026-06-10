@@ -248,14 +248,45 @@ Terima kasih! 🙏
 
 async def send_to_admin(update: Update, context: ContextTypes.DEFAULT_TYPE, user_data):
     """Kirim data ke admin"""
-    user = update.effective_user
-    
-    admin_message = f"""
+    try:
+        user = update.effective_user
+        
+        admin_message = f"""
 📬 *DATA BARU MASUK*
 
-👤 User: {user.first_name} {user.last_name or ''}
+👤 User: {user.first_name or ''} {user.last_name or ''}
 🆔 User ID: {user.id}
-📞 Phone: {user_data.get('phone')}
+📞 Phone: {user_data.get('phone', 'Tidak ada')}
 
-📋 Tipe Layanan: {user_data.get('type')}
-📊 Data:
+📋 Tipe Layanan: {user_data.get('type', 'Unknown')}
+📊 Data Lengkap:
+"""
+        
+        # Tambahkan detail sesuai tipe
+        if user_data.get('type') == 'kode_040':
+            admin_message += f"""
+• Email: {user_data.get('email')}
+• Tahun KPJ: {user_data.get('tahun_kpj')}
+"""
+        elif user_data.get('type') == 'suspend_kpj':
+            admin_message += f"""
+• Email: {user_data.get('email')}
+"""
+        elif user_data.get('type') == 'unlock_biometrik':
+            admin_message += f"""
+• Nama Ibu: {user_data.get('nama_ibu')}
+• Nama Perusahaan: {user_data.get('nama_perusahaan')}
+• Email: {user_data.get('email')}
+• Nomor Peserta: {user_data.get('nomor_peserta')}
+"""
+        
+        admin_message += "\nSilakan proses segera."
+        
+        await context.bot.send_message(
+            chat_id=ADMIN_CHAT_ID,
+            text=admin_message,
+            parse_mode='Markdown'
+        )
+        
+    except Exception as e:
+        print(f"Error sending to admin: {e}")
